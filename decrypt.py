@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import sys, os
@@ -8,7 +8,7 @@ from Crypto.Cipher import AES, PKCS1_v1_5
 import P1735Parser
 
 def parse_args(args):
-    argParser = AP.ArgumentParser(description = "Decrypt P1735 encrypted VHDL modules")
+    argParser = AP.ArgumentParser(description = "Decrypt P1735 encrypted Verilog modules")
     argParser.add_argument("-keyname",
                            nargs=1,
                            type=str,
@@ -28,14 +28,14 @@ def parse_args(args):
                            type=AP.FileType("r"),
                            required=True,
                            help="File to decrypt",
-                           metavar = "IN.vhdp",
+                           metavar = "IN.vp",
                            dest = 'infile')
     argParser.add_argument("-out",
                            nargs=1,
-                           type=AP.FileType("w"),
+                           type=AP.FileType("wb"),
                            required=False,
                            help="Destination of dectyption (stdout if not specified)",
-                           metavar = "OUT.vhd",
+                           metavar = "OUT.v",
                            dest = 'outfile')
     return argParser.parse_args(args)
 
@@ -50,9 +50,8 @@ def rsa_decrypt(fd, data):
     cipher = PKCS1_v1_5.new(rsakey)
     return cipher.decrypt(data, None)
 
-def aes128_cbc_decrypt(key, data):
+def aes128_cbc_decrypt(key, iv, data):
     unpad = lambda s : s[:-ord(s[len(s)-1:])]
-    iv = data[:16]
     cipher = AES.new(key, AES.MODE_CBC, iv)
     return unpad(cipher.decrypt(data[16:]))
 
@@ -67,19 +66,20 @@ if __name__ == "__main__":
     try:
         esession_key = edata.session_keys[keyname]
     except KeyError:
-        print "No such key: %s" % keyname
-        print "Need any one of these:"
-        for kn in edata.session_keys.keys():
-            print "    %s" % kn
+        print("No such key: %s" % keyname)
+        print("Need any one of these:")
+        for kn in list(edata.session_keys.keys()):
+            print("    %s" % kn)
         sys.exit(1)
 
     session_key = rsa_decrypt(args.keyfile[0], esession_key)
-    decrypted_data = aes128_cbc_decrypt(session_key, edata.encrypted_data)
+    # gowin start
+    key = session_key[31:27:-1] + session_key[32:36] + session_key[39:35:-1] + session_key[40:44]
+    iv = session_key[31:47]
+    # gowin end
+    decrypted_data = aes128_cbc_decrypt(key, iv, edata.encrypted_data)
     if args.outfile:
         outfile = args.outfile[0]
     else:
-        outfile = sys.stdout
+        outfile = sys.stdout.buffer
     outfile.write(decrypted_data)
-    
-
-

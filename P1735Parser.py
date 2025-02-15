@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import pyparsing as pp
@@ -15,7 +15,7 @@ class P1735Parser:
         self.data_block = False
         self.p1735 = False
 
-        protect_kw = pp.Keyword('`protect').suppress()
+        protect_kw = protect_kw = pp.Keyword('`pragma protect').suppress()
         identifier = pp.Word(pp.alphas, pp.alphanums + "_")
         number = pp.Word(pp.nums).setParseAction(lambda t: int(t[0]))
         string = pp.dblQuotedString().setParseAction(pp.removeQuotes)
@@ -74,7 +74,7 @@ class P1735Parser:
             self.data_block = False
             self.encrypted_data = b64decode(''.join(self.base64_buf))
             self.base64_buf = []
-            assert self.info['data_method'].lower() == 'aes128-cbc'
+            #assert self.info['data_method'].lower() == 'aes128-cbc'
             
     def assignment_action(self, toks):
         assert self.p1735 == True
@@ -91,7 +91,7 @@ class P1735Parser:
         s = []
         s.append("Available keys:")
         i = 0
-        for keyname, key in self.session_keys.iteritems():
+        for keyname, key in self.session_keys.items():
             s.append("%2i.    keylength = %4i, keyname = %s" % (i, len(key), keyname))
             i += 1
         s.append("Data block length = %i bytes" % len(self.encrypted_data))
@@ -105,6 +105,7 @@ if __name__ == "__main__":
             try:
                 p.feed(line)
             except pp.ParseException:
-                print "Failed at : %s" % line
+                print("Failed at : %s" % line)
                 sys.exit(1)
-    print p
+    print(p)
+
